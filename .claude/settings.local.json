@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/maxchen/Downloads/**)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('main.py'\\).read\\(\\)\\); print\\('Syntax OK'\\)\")",
+      "Bash(pip3 show *)"
+    ]
+  }
+}
