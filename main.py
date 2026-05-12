@@ -290,6 +290,7 @@ for extra_org in extra_orgs:
             "size_kb":           r.get("size", 0),
             "star_velocity":     velocity,
             "has_paper":         has_paper,
+            "arxiv_url":         arxiv_url,
             "has_product_signal": has_product,
             "category":          categorize(tag_text),
             "potential_score":   0,
