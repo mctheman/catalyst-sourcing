@@ -593,9 +593,10 @@
     <!-- Add Org -->
     <div class="tracker-section">
       <h3 style="font-size:15px;font-weight:600;margin-bottom:6px">Add Org to All Future Scrapes</h3>
-      <p style="font-size:13px;color:var(--muted2);margin-bottom:10px">Appends the org to <code>extra_orgs.txt</code> in the repo — it will be scraped every week automatically.</p>
+      <p style="font-size:13px;color:var(--muted2);margin-bottom:10px">Appends the org to <code>extra_orgs.txt</code> — it will be scraped every week automatically.</p>
       <div class="org-input-row">
-        <input type="text" id="org-url-input" placeholder="e.g. openai or https://github.com/openai">
+        <input type="text" id="org-url-input" placeholder="GitHub org (e.g. openai or https://github.com/openai)" style="flex:2">
+        <input type="text" id="org-school-input" placeholder="School (e.g. UC San Diego)" style="flex:1">
         <button class="btn" id="add-org-btn" onclick="addOrg()">Add Org</button>
       </div>
       <div id="org-status" style="margin-top:10px;font-size:13px;display:none"></div>
@@ -1118,6 +1119,9 @@ async function addOrg() {
   } catch { orgLogin = raw.replace(/.*github\.com\//, '').split('/')[0]; }
   if (!orgLogin) { setOrgStatus('Could not parse org name.', 'error'); return; }
 
+  const school = document.getElementById('org-school-input').value.trim() || 'External';
+  const entry  = `${orgLogin}:${school}`;
+
   const pat = loadPAT();
   if (!pat) {
     document.getElementById('pat-setup').style.display = 'block';
@@ -1143,19 +1147,20 @@ async function addOrg() {
 
     // Check if already present
     const lines = currentContent.split('\n').map(l => l.trim());
-    if (lines.includes(orgLogin)) {
+    const orgLogins = lines.map(l => l.split(':')[0].trim());
+    if (orgLogins.includes(orgLogin)) {
       setOrgStatus(`"${orgLogin}" is already in extra_orgs.txt.`, 'success');
       btn.disabled = false;
       return;
     }
 
-    // Append org and commit
-    const newContent = currentContent.trimEnd() + '\n' + orgLogin + '\n';
+    // Append org:school and commit
+    const newContent = currentContent.trimEnd() + '\n' + entry + '\n';
     const putRes = await fetch(API, {
       method: 'PUT',
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        message: `chore: add ${orgLogin} to extra_orgs.txt`,
+        message: `chore: add ${entry} to extra_orgs.txt`,
         content: btoa(newContent),
         sha: fileData.sha,
         branch: 'main',
@@ -1163,8 +1168,9 @@ async function addOrg() {
     });
 
     if (putRes.ok) {
-      setOrgStatus(`✓ "${orgLogin}" added — it will be scraped every week from now on.`, 'success');
+      setOrgStatus(`✓ "${orgLogin}" (${school}) added — it will be scraped every week from now on.`, 'success');
       document.getElementById('org-url-input').value = '';
+      document.getElementById('org-school-input').value = '';
     } else {
       const body = await putRes.json().catch(() => ({}));
       throw new Error(body.message || `HTTP ${putRes.status}`);

@@ -1,6 +1,6 @@
-# Add one GitHub org login per line.
-# These orgs will be scraped on every weekly run in addition to SCHOOLS.
-# Example:
-#   openai
-#   huggingface
-z-lab
+# Add one entry per line in the format:  org:School Name
+# If no school is specified, it will be labelled "External".
+# Examples:
+#   openai:External
+#   huggingface:External
+z-lab:UC San Diego

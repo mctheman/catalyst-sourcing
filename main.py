@@ -238,14 +238,22 @@ args = parser.parse_args()
 target_schools = SCHOOLS[: args.schools] if args.schools else SCHOOLS
 
 extra_orgs_file = Path("extra_orgs.txt")
-extra_orgs = [
-    line.strip() for line in extra_orgs_file.read_text().splitlines()
-    if line.strip() and not line.startswith("#")
-] if extra_orgs_file.exists() else []
+# Each entry is (org_login, school_label)
+extra_orgs = []
+if extra_orgs_file.exists():
+    for line in extra_orgs_file.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if ":" in line:
+            org_login, school_label = line.split(":", 1)
+            extra_orgs.append((org_login.strip(), school_label.strip()))
+        else:
+            extra_orgs.append((line, "External"))
 
 extra_org = os.getenv("EXTRA_ORG", "").strip()
-if extra_org and extra_org not in extra_orgs:
-    extra_orgs.append(extra_org)
+if extra_org and extra_org not in [o for o, _ in extra_orgs]:
+    extra_orgs.append((extra_org, "External"))
 
 Path("runs").mkdir(exist_ok=True)
 start = time.time()
@@ -302,10 +310,10 @@ def process_repo(r, org, school):
 
 
 # ── Extra orgs (from extra_orgs.txt + optional workflow_dispatch input) ───────
-for extra_org in extra_orgs:
-    print(f"[extra org] scraping {extra_org} ...")
+for extra_org, extra_school in extra_orgs:
+    print(f"[extra org] scraping {extra_org} (school: {extra_school}) ...")
     for r in get_repos(extra_org):
-        row = process_repo(r, extra_org, "External")
+        row = process_repo(r, extra_org, extra_school)
         if row:
             rows.append(row)
 
