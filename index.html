@@ -545,6 +545,13 @@
           <div class="table-wrap">
             <table id="table-top"><thead></thead><tbody></tbody></table>
           </div>
+          <div class="pagination">
+            <button onclick="pageTopDelta(-1)" id="prev-btn-top">◀ Prev</button>
+            <span id="page-info-top">Page 1 of 1</span>
+            <button onclick="pageTopDelta(1)" id="next-btn-top">Next ▶</button>
+            <input type="number" id="page-jump-input-top" min="1" style="width:50px" placeholder="#">
+            <button onclick="pageTopJump()">Go</button>
+          </div>
         </div>
       </div>
 
@@ -626,7 +633,7 @@
 const state = {
   rows:        [],
   baseNew:     [],   // rows where new_repo===true, sorted by score desc
-  baseTop:     [],   // top 10 by score from all rows
+  baseTop:     [],   // top 100 by score from all rows
   filteredNew: [],
   filteredTop: [],
   filteredAll: [],
@@ -634,8 +641,10 @@ const state = {
   sortDir: -1,
   page: 1,
   pageNew: 1,
+  pageTop: 1,
   PAGE_SIZE: 50,
   PAGE_SIZE_NEW: 10,
+  PAGE_SIZE_TOP: 10,
   viewAll: false,
   viewAllNew: false,
   searchText: '',
@@ -725,7 +734,7 @@ function onDataLoaded() {
 
   state.baseTop = [...state.rows]
     .sort((a, b) => b.potential_score - a.potential_score)
-    .slice(0, 10);
+    .slice(0, 100);
 
   populateDropdowns();
   applyFilters();
@@ -795,6 +804,7 @@ function applyFilters() {
   state.filteredAll = state.rows.filter(pred);
   state.page = 1;
   state.pageNew = 1;
+  state.pageTop = 1;
 }
 
 // ── Render All ─────────────────────────────────────────────────────────────
@@ -907,8 +917,28 @@ function toggleViewAllNew() {
 }
 
 function renderTopScorers() {
-  setTable('table-top', state.filteredTop, false);
-  document.getElementById('count-top').textContent = state.filteredTop.length.toLocaleString();
+  const total = state.filteredTop.length;
+  const pages = Math.max(1, Math.ceil(total / state.PAGE_SIZE_TOP));
+  if (state.pageTop > pages) state.pageTop = pages;
+  const rows = state.filteredTop.slice((state.pageTop - 1) * state.PAGE_SIZE_TOP, state.pageTop * state.PAGE_SIZE_TOP);
+  setTable('table-top', rows, false);
+  document.getElementById('count-top').textContent = total.toLocaleString();
+  document.getElementById('page-info-top').textContent = `Page ${state.pageTop} of ${pages}`;
+  document.getElementById('prev-btn-top').disabled = state.pageTop <= 1;
+  document.getElementById('next-btn-top').disabled = state.pageTop >= pages;
+  document.getElementById('page-jump-input-top').max = pages;
+}
+
+function pageTopDelta(delta) {
+  const pages = Math.max(1, Math.ceil(state.filteredTop.length / state.PAGE_SIZE_TOP));
+  state.pageTop = Math.max(1, Math.min(pages, state.pageTop + delta));
+  renderTopScorers();
+}
+
+function pageTopJump() {
+  const v = parseInt(document.getElementById('page-jump-input-top').value);
+  const pages = Math.max(1, Math.ceil(state.filteredTop.length / state.PAGE_SIZE_TOP));
+  if (!isNaN(v) && v >= 1 && v <= pages) { state.pageTop = v; renderTopScorers(); }
 }
 
 function sortFn() {
