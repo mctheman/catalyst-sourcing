@@ -626,7 +626,7 @@
 const state = {
   rows:        [],
   baseNew:     [],   // rows where new_repo===true, sorted by score desc
-  baseTop:     [],   // top 50 by score from all rows
+  baseTop:     [],   // top 10 by score from all rows
   filteredNew: [],
   filteredTop: [],
   filteredAll: [],
@@ -635,6 +635,7 @@ const state = {
   page: 1,
   pageNew: 1,
   PAGE_SIZE: 50,
+  PAGE_SIZE_NEW: 10,
   viewAll: false,
   viewAllNew: false,
   searchText: '',
@@ -724,7 +725,7 @@ function onDataLoaded() {
 
   state.baseTop = [...state.rows]
     .sort((a, b) => b.potential_score - a.potential_score)
-    .slice(0, 50);
+    .slice(0, 10);
 
   populateDropdowns();
   applyFilters();
@@ -868,14 +869,14 @@ function setTable(tableId, rows, sortable) {
 // ── Section renders ────────────────────────────────────────────────────────
 function renderNewThisWeek() {
   const total = state.filteredNew.length;
-  const pages = Math.max(1, Math.ceil(total / state.PAGE_SIZE));
+  const pages = Math.max(1, Math.ceil(total / state.PAGE_SIZE_NEW));
   if (state.pageNew > pages) state.pageNew = pages;
 
   document.getElementById('count-new').textContent = total.toLocaleString();
 
   const rows = state.viewAllNew
     ? state.filteredNew
-    : state.filteredNew.slice((state.pageNew - 1) * state.PAGE_SIZE, state.pageNew * state.PAGE_SIZE);
+    : state.filteredNew.slice((state.pageNew - 1) * state.PAGE_SIZE_NEW, state.pageNew * state.PAGE_SIZE_NEW);
 
   setTable('table-new', rows, false);
 
@@ -888,14 +889,14 @@ function renderNewThisWeek() {
 }
 
 function changePageNew(delta) {
-  const pages = Math.max(1, Math.ceil(state.filteredNew.length / state.PAGE_SIZE));
+  const pages = Math.max(1, Math.ceil(state.filteredNew.length / state.PAGE_SIZE_NEW));
   state.pageNew = Math.max(1, Math.min(pages, state.pageNew + delta));
   renderNewThisWeek();
 }
 
 function jumpToPageNew() {
   const v = parseInt(document.getElementById('page-jump-input-new').value, 10);
-  const pages = Math.max(1, Math.ceil(state.filteredNew.length / state.PAGE_SIZE));
+  const pages = Math.max(1, Math.ceil(state.filteredNew.length / state.PAGE_SIZE_NEW));
   if (!isNaN(v) && v >= 1 && v <= pages) { state.pageNew = v; renderNewThisWeek(); }
 }
 

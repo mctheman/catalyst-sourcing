@@ -373,21 +373,19 @@ today_by_url = {r["url"]: r for r in rows}
 
 digest_rows = []
 for row in rows:
-    url       = row["url"]
-    prev_row  = prev.get(url)
-    new_repo  = prev_row is None
+    url         = row["url"]
+    prev_row    = prev.get(url)
+    new_repo    = prev_row is None
     star_delta  = row["stars"] - int(prev_row["stars"] if prev_row else row["stars"])
     score_delta = row["potential_score"] - int(prev_row["potential_score"] if prev_row else row["potential_score"])
-    is_hot    = star_delta >= 5
-
-    if new_repo or is_hot:
-        digest_rows.append({
-            **row,
-            "new_repo":    new_repo,
-            "is_hot":      is_hot,
-            "star_delta":  star_delta,
-            "score_delta": score_delta,
-        })
+    is_hot      = star_delta >= 5
+    digest_rows.append({
+        **row,
+        "new_repo":    new_repo,
+        "is_hot":      is_hot,
+        "star_delta":  star_delta,
+        "score_delta": score_delta,
+    })
 
 digest_rows.sort(key=lambda x: (not x["new_repo"], -x["star_delta"], -x["potential_score"]))
 write_csv(Path("weekly_digest.csv"), digest_rows)
