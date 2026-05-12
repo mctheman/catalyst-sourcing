@@ -3,3 +3,4 @@
 # Examples:
 #   openai:External
 #   huggingface:External
+z-lab:UC San Diego
