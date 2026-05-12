@@ -354,11 +354,11 @@ for school_idx, school in enumerate(target_schools, 1):
             rows.append(row)
 
     # Flush after each school so a crash doesn't lose everything
-    rows.sort(key=lambda x: -x["research_score"])
+    rows.sort(key=lambda x: -x["potential_score"])
     write_csv(Path("results.csv"), rows)
     write_csv(Path(f"runs/{TODAY}.csv"), rows)
 
-rows.sort(key=lambda x: -x["research_score"])
+rows.sort(key=lambda x: -x["potential_score"])
 
 # ── save run ──────────────────────────────────────────────────────────────────
 
@@ -401,7 +401,7 @@ print(f"Weekly Digest — {TODAY}")
 print(f"  New repos found:  {len(new_repos)}")
 print(f"  Repos gone hot:   {len(hot_repos)}  (star_delta >= 20)")
 
-print(f"\nTop 10 new repos by research_score:")
+print(f"\nTop 10 new repos by potential_score:")
 print(f"  {'Repo':<40} {'School':<22} {'Stars':<7} {'Score'}")
 print(f"  {'-'*80}")
 for r in sorted(new_repos, key=lambda x: -x["potential_score"])[:10]:
