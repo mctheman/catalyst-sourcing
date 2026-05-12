@@ -545,12 +545,15 @@
           <div class="table-wrap">
             <table id="table-top"><thead></thead><tbody></tbody></table>
           </div>
-          <div class="pagination">
-            <button onclick="pageTopDelta(-1)" id="prev-btn-top">◀ Prev</button>
-            <span id="page-info-top">Page 1 of 1</span>
-            <button onclick="pageTopDelta(1)" id="next-btn-top">Next ▶</button>
-            <input type="number" id="page-jump-input-top" min="1" style="width:50px" placeholder="#">
-            <button onclick="pageTopJump()">Go</button>
+          <div class="pagination" id="pagination-top">
+            <button class="btn" id="prev-btn-top" onclick="pageTopDelta(-1)">← Prev</button>
+            <span class="page-info" id="page-info-top"></span>
+            <button class="btn" id="next-btn-top" onclick="pageTopDelta(1)">Next →</button>
+            <div class="page-jump">
+              <span>Go to</span>
+              <input type="number" id="page-jump-input-top" min="1" placeholder="…">
+              <button class="btn" onclick="pageTopJump()">Go</button>
+            </div>
           </div>
         </div>
       </div>
@@ -609,14 +612,12 @@
 
     <!-- Add Org -->
     <div class="tracker-section" style="margin-top:20px">
-      <h3 style="font-size:15px;font-weight:600;margin-bottom:6px">Add Org to Next Scrape</h3>
-      <p style="font-size:13px;color:var(--muted2);margin-bottom:14px">Triggers a GitHub Actions run that scrapes the org and commits results back to the repo.</p>
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:6px">Add Org to All Future Scrapes</h3>
+      <p style="font-size:13px;color:var(--muted2);margin-bottom:14px">Type an org name below, then click the button to open the GitHub editor. Add it on a new line and commit — it will be scraped every week from then on.</p>
       <div class="org-input-row">
-        <input type="text" id="org-url-input" placeholder="https://github.com/myorg  or  myorg">
-        <button class="btn" id="add-org-btn" onclick="addOrg()">Trigger Scrape</button>
+        <input type="text" id="org-url-input" placeholder="e.g. openai or https://github.com/openai">
+        <button class="btn" id="add-org-btn" onclick="openOrgEditor()">Open GitHub Editor →</button>
       </div>
-      <div id="org-error"></div>
-      <div id="org-status" style="display:none"></div>
     </div>
 
     <!-- Tracked orgs from CSV -->
@@ -1121,73 +1122,19 @@ function renderOrgList() {
   el.innerHTML = csvOrgs.map(o => `<span class="org-chip">${o}</span>`).join('');
 }
 
-// ── Add Org → workflow_dispatch ────────────────────────────────────────────
-async function addOrg() {
-  const input = document.getElementById('org-url-input');
-  const errEl = document.getElementById('org-error');
-  const statEl = document.getElementById('org-status');
-  errEl.style.display = 'none';
-  statEl.style.display = 'none';
-  statEl.className = '';
-
-  const raw = input.value.trim();
-  if (!raw) { showOrgErr('Enter a GitHub org URL or login.'); return; }
-
+// ── Add Org → open GitHub editor for extra_orgs.txt ───────────────────────
+function openOrgEditor() {
+  const raw = document.getElementById('org-url-input').value.trim();
   let orgLogin = '';
-  try {
-    const url = raw.startsWith('http') ? new URL(raw) : new URL('https://' + raw);
-    orgLogin = url.pathname.replace(/^\//, '').split('/')[0];
-  } catch { orgLogin = raw.replace(/.*github\.com\//, '').split('/')[0]; }
-  if (!orgLogin) { showOrgErr('Could not parse org name from input.'); return; }
-
-  const s = loadSettings();
-  if (!s.pat)      { showOrgErr('Add your GitHub PAT in ⚙️ GitHub Settings above.'); return; }
-  if (!s.repo)     { showOrgErr('Add your repo (owner/name) in ⚙️ GitHub Settings above.'); return; }
-  const workflow = s.workflow || 'scrape.yml';
-
-  const btn = document.getElementById('add-org-btn');
-  btn.disabled = true;
-  btn.textContent = 'Triggering…';
-  statEl.className = 'pending';
-  statEl.textContent = `Dispatching workflow for org "${orgLogin}"…`;
-  statEl.style.display = 'block';
-
-  try {
-    const res = await fetch(
-      `https://api.github.com/repos/${s.repo}/actions/workflows/${workflow}/dispatches`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${s.pat}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ref: 'main', inputs: { extra_org: orgLogin } }),
-      }
-    );
-
-    if (res.status === 204) {
-      statEl.className = 'success';
-      statEl.textContent = `✓ Workflow triggered for "${orgLogin}". Results will be committed to the repo after the run completes (~10–30 min).`;
-      input.value = '';
-    } else {
-      const body = await res.json().catch(() => ({}));
-      const msg  = body.message || `HTTP ${res.status}`;
-      statEl.className = 'error';
-      statEl.textContent = `✗ GitHub API error: ${msg}`;
-    }
-  } catch (err) {
-    statEl.className = 'error';
-    statEl.textContent = `✗ Network error: ${err.message}`;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Trigger Scrape';
+  if (raw) {
+    try {
+      const url = raw.startsWith('http') ? new URL(raw) : new URL('https://' + raw);
+      orgLogin = url.pathname.replace(/^\//, '').split('/')[0];
+    } catch { orgLogin = raw.replace(/.*github\.com\//, '').split('/')[0]; }
   }
-}
-
-function showOrgErr(msg) {
-  const el = document.getElementById('org-error');
-  el.textContent = msg; el.style.display = 'block';
+  const editorUrl = 'https://github.com/mctheman/catalyst-sourcing/edit/main/extra_orgs.txt'
+    + (orgLogin ? `#:~:text=${encodeURIComponent(orgLogin)}` : '');
+  window.open(editorUrl, '_blank');
 }
 
 // Load saved settings on startup

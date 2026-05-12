@@ -236,14 +236,23 @@ parser.add_argument("--schools", type=int, default=None, help="Only run the firs
 args = parser.parse_args()
 
 target_schools = SCHOOLS[: args.schools] if args.schools else SCHOOLS
+
+extra_orgs_file = Path("extra_orgs.txt")
+extra_orgs = [
+    line.strip() for line in extra_orgs_file.read_text().splitlines()
+    if line.strip() and not line.startswith("#")
+] if extra_orgs_file.exists() else []
+
 extra_org = os.getenv("EXTRA_ORG", "").strip()
+if extra_org and extra_org not in extra_orgs:
+    extra_orgs.append(extra_org)
 
 Path("runs").mkdir(exist_ok=True)
 start = time.time()
 rows  = []
 
-# ── Extra org (from workflow_dispatch input) ──────────────────────────────────
-if extra_org:
+# ── Extra orgs (from extra_orgs.txt + optional workflow_dispatch input) ───────
+for extra_org in extra_orgs:
     print(f"[extra org] scraping {extra_org} ...")
     for r in get_repos(extra_org):
         if r.get("fork") or r.get("archived"):
