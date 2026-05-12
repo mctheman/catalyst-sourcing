@@ -1161,41 +1161,28 @@ applySettings();
 
 // ── Auto-load most recent run from GitHub ─────────────────────────────────
 async function autoLoadLatest() {
-  const s = loadSettings();
-  if (!s.pat || !s.repo) return;
-
   const statusEl = document.getElementById('auto-load-status');
   statusEl.style.display = 'block';
-  statusEl.textContent = 'Loading latest run from GitHub…';
+  statusEl.textContent = 'Loading latest data…';
 
   try {
-    const ghHeaders = {
-      'Authorization': `Bearer ${s.pat}`,
-      'Accept': 'application/vnd.github.v3+json',
-    };
-
-    // Fetch weekly_digest.csv via Contents API
     const res = await fetch(
-      `https://api.github.com/repos/${s.repo}/contents/weekly_digest.csv`,
-      { headers: ghHeaders }
+      'https://raw.githubusercontent.com/mctheman/catalyst-sourcing/main/weekly_digest.csv'
     );
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      statusEl.textContent = `Could not auto-load: ${body.message || 'HTTP ' + res.status}`;
+      statusEl.textContent = `Could not load data: HTTP ${res.status}`;
       return;
     }
 
-    const json = await res.json();
-    const csvText = atob(json.content.replace(/\n/g, ''));
-
+    const csvText = await res.text();
     state.rows = parseCSV(csvText);
     state.page = 1;
     onDataLoaded();
     showError('');
     statusEl.style.display = 'none';
   } catch (err) {
-    statusEl.textContent = `Auto-load failed: ${err.message}`;
+    statusEl.textContent = `Failed to load data: ${err.message}`;
   }
 }
 
