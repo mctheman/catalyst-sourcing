@@ -813,6 +813,7 @@ const COLS = [
   { key: 'category',           label: 'Category',     sort: true  },
   { key: 'has_product_signal', label: 'Product',      sort: false },
   { key: 'has_paper',          label: 'Paper',        sort: false },
+  { key: 'arxiv_url',          label: 'ArXiv',        sort: false },
   { key: 'last_updated',       label: 'Last Updated', sort: true  },
 ];
 
@@ -847,6 +848,7 @@ function setTable(tableId, rows, sortable) {
     const score = `<span class="score-badge score-${tier}">${r.potential_score}</span>`;
     const prod  = r.has_product_signal === true ? '📦' : '';
     const paper = r.has_paper === true ? '📄' : '';
+    const arxiv = r.arxiv_url ? `<a href="${r.arxiv_url}" target="_blank" style="font-size:11px">📄 arXiv</a>` : '';
     const vel   = typeof r.star_velocity === 'number' ? r.star_velocity.toFixed(1) : r.star_velocity;
     return `<tr>
       <td>${repo}</td>
@@ -857,6 +859,7 @@ function setTable(tableId, rows, sortable) {
       <td>${r.category||''}</td>
       <td style="text-align:center">${prod}</td>
       <td style="text-align:center">${paper}</td>
+      <td>${arxiv}</td>
       <td>${r.last_updated||''}</td>
     </tr>`;
   }).join('');

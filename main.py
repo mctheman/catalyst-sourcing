@@ -346,6 +346,7 @@ for school_idx, school in enumerate(target_schools, 1):
                 "size_kb":            r.get("size", 0),
                 "star_velocity":      velocity,
                 "has_paper":          has_paper,
+                "arxiv_url":          arxiv_url,
                 "has_product_signal": has_product,
                 "category":           category,
                 "potential_score":    0,
