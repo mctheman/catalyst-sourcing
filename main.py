@@ -377,7 +377,7 @@ for row in rows:
     new_repo  = prev_row is None
     star_delta  = row["stars"] - int(prev_row["stars"] if prev_row else row["stars"])
     score_delta = row["potential_score"] - int(prev_row["potential_score"] if prev_row else row["potential_score"])
-    is_hot    = star_delta >= 20
+    is_hot    = star_delta >= 5
 
     if new_repo or is_hot:
         digest_rows.append({
