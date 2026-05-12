@@ -733,7 +733,6 @@ function onDataLoaded() {
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('filters-bar').classList.add('visible');
   document.getElementById('reload-btn').style.display = '';
-  document.getElementById('org-tracker').style.display = 'block';
 
   const d = state.rows[0]?.scraped_at || '';
   document.getElementById('subtitle').textContent =
@@ -1036,7 +1035,6 @@ document.getElementById('reload-btn').addEventListener('click', () => {
   document.getElementById('empty-state').style.display = 'block';
   document.getElementById('filters-bar').classList.remove('visible');
   document.getElementById('reload-btn').style.display = 'none';
-  document.getElementById('org-tracker').style.display = 'none';
   document.getElementById('subtitle').textContent = 'Drop a weekly_digest.csv to explore academic repos';
   const dzr = document.getElementById('drop-zone');
   dzr.classList.remove('has-file');
