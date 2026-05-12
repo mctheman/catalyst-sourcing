@@ -251,52 +251,63 @@ Path("runs").mkdir(exist_ok=True)
 start = time.time()
 rows  = []
 
+def process_repo(r, org, school):
+    """Process a single repo dict into a row, or return None if it should be skipped."""
+    if r.get("fork") or r.get("archived"):
+        return None
+    if (r.get("pushed_at") or "") < CUTOFF:
+        return None
+
+    emails         = edu_emails(org, r["name"])
+    desc_has_paper = has_paper_signal(r.get("description") or "")
+    readme         = ""
+
+    if r.get("stargazers_count", 0) >= 5:
+        readme = fetch_readme(org, r["name"])
+        readme_has_paper, has_product = readme_signals(readme)
+        has_paper = desc_has_paper or readme_has_paper
+    else:
+        has_paper, has_product = desc_has_paper, False
+
+    arxiv_url = (extract_arxiv_url(r.get("description") or "") or extract_arxiv_url(readme)) if has_paper else ""
+    velocity  = stars_per_month(r)
+    topics    = r.get("topics") or []
+    tag_text  = " ".join([r.get("name", ""), r.get("description", "") or "", " ".join(topics)]).lower()
+
+    row = {
+        "scraped_at":         TODAY,
+        "school":             school,
+        "org":                org,
+        "repo":               r["name"],
+        "url":                r["html_url"],
+        "stars":              r["stargazers_count"],
+        "forks":              r["forks_count"],
+        "last_updated":       (r.get("pushed_at") or "")[:10],
+        "description":        (r.get("description") or "")[:120],
+        "edu_verified":       bool(emails),
+        "edu_emails":         ", ".join(emails),
+        "language":           r.get("language") or "",
+        "topics":             ", ".join(topics),
+        "open_issues":        r.get("open_issues_count", 0),
+        "size_kb":            r.get("size", 0),
+        "star_velocity":      velocity,
+        "has_paper":          has_paper,
+        "arxiv_url":          arxiv_url,
+        "has_product_signal": has_product,
+        "category":           categorize(tag_text),
+        "potential_score":    0,
+    }
+    row["potential_score"] = compute_score(row, has_paper, has_product)
+    return row
+
+
 # ── Extra orgs (from extra_orgs.txt + optional workflow_dispatch input) ───────
 for extra_org in extra_orgs:
     print(f"[extra org] scraping {extra_org} ...")
     for r in get_repos(extra_org):
-        if r.get("fork") or r.get("archived"):
-            continue
-        if (r.get("pushed_at") or "") < CUTOFF:
-            continue
-        emails = edu_emails(extra_org, r["name"])
-        desc_has_paper = has_paper_signal(r.get("description") or "")
-        readme = ""
-        if r.get("stargazers_count", 0) >= 5:
-            readme = fetch_readme(extra_org, r["name"])
-            readme_has_paper, has_product = readme_signals(readme)
-            has_paper = desc_has_paper or readme_has_paper
-        else:
-            has_paper, has_product = desc_has_paper, False
-        arxiv_url = (extract_arxiv_url(r.get("description") or "") or extract_arxiv_url(readme)) if has_paper else ""
-        velocity  = stars_per_month(r)
-        topics    = r.get("topics") or []
-        tag_text  = " ".join([r.get("name", ""), r.get("description", "") or "", " ".join(topics)]).lower()
-        row = {
-            "scraped_at":        TODAY,
-            "school":            "External",
-            "org":               extra_org,
-            "repo":              r["name"],
-            "url":               r["html_url"],
-            "stars":             r["stargazers_count"],
-            "forks":             r["forks_count"],
-            "last_updated":      (r.get("pushed_at") or "")[:10],
-            "description":       (r.get("description") or "")[:120],
-            "edu_verified":      bool(emails),
-            "edu_emails":        ", ".join(emails),
-            "language":          r.get("language") or "",
-            "topics":            ", ".join(topics),
-            "open_issues":       r.get("open_issues_count", 0),
-            "size_kb":           r.get("size", 0),
-            "star_velocity":     velocity,
-            "has_paper":         has_paper,
-            "arxiv_url":         arxiv_url,
-            "has_product_signal": has_product,
-            "category":          categorize(tag_text),
-            "potential_score":   0,
-        }
-        row["potential_score"] = compute_score(row, has_paper, has_product)
-        rows.append(row)
+        row = process_repo(r, extra_org, "External")
+        if row:
+            rows.append(row)
 
 for school_idx, school in enumerate(target_schools, 1):
     elapsed = time.time() - start
@@ -310,59 +321,10 @@ for school_idx, school in enumerate(target_schools, 1):
     print(orgs)
 
     for org in orgs:
-        repos = get_repos(org)
-        for r in repos:
-            if r.get("fork") or r.get("archived"):
-                continue
-            if (r.get("pushed_at") or "") < CUTOFF:
-                continue
-
-            emails = edu_emails(org, r["name"])
-            desc_has_paper = has_paper_signal(r.get("description") or "")
-
-            readme = ""
-            if r.get("stargazers_count", 0) >= 5 and bool(emails):
-                readme = fetch_readme(org, r["name"])
-                readme_has_paper, has_product = readme_signals(readme)
-                has_paper = desc_has_paper or readme_has_paper
-            else:
-                has_paper, has_product = desc_has_paper, False
-
-            if has_paper:
-                arxiv_url = extract_arxiv_url(r.get("description") or "") or extract_arxiv_url(readme)
-            else:
-                arxiv_url = ""
-
-            velocity = stars_per_month(r)
-            topics   = r.get("topics") or []
-            tag_text = " ".join([r.get("name", ""), r.get("description", "") or "", " ".join(topics)]).lower()
-            category = categorize(tag_text)
-
-            row = {
-                "scraped_at":         TODAY,
-                "school":             school,
-                "org":                org,
-                "repo":               r["name"],
-                "url":                r["html_url"],
-                "stars":              r["stargazers_count"],
-                "forks":              r["forks_count"],
-                "last_updated":       (r.get("pushed_at") or "")[:10],
-                "description":        (r.get("description") or "")[:120],
-                "edu_verified":       bool(emails),
-                "edu_emails":         ", ".join(emails),
-                "language":           r.get("language") or "",
-                "topics":             ", ".join(topics),
-                "open_issues":        r.get("open_issues_count", 0),
-                "size_kb":            r.get("size", 0),
-                "star_velocity":      velocity,
-                "has_paper":          has_paper,
-                "arxiv_url":          arxiv_url,
-                "has_product_signal": has_product,
-                "category":           category,
-                "potential_score":    0,
-            }
-            row["potential_score"] = compute_score(row, has_paper, has_product)
-            rows.append(row)
+        for r in get_repos(org):
+            row = process_repo(r, org, school)
+            if row:
+                rows.append(row)
 
     # Flush after each school so a crash doesn't lose everything
     rows.sort(key=lambda x: -x["potential_score"])
