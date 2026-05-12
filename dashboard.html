@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080808;
+    --surface: #0f0f0f;
+    --surface2: #161616;
+    --surface3: #1c1c1c;
+    --border: rgba(255,255,255,0.07);
+    --border-bright: rgba(255,255,255,0.13);
+    --text: #ebebeb;
+    --muted: #4a4a4a;
+    --muted2: #7a7a7a;
+    --accent: #7c6af7;
+    --accent2: #5aabff;
+    --grad: linear-gradient(120deg, #c4b5fd 0%, #93c5fd 55%, #6ee7b7 100%);
+    --score-high-bg: rgba(52,211,153,0.1);
+    --score-high: #34d399;
+    --score-mid-bg: rgba(251,191,36,0.1);
+    --score-mid: #fbbf24;
+    --score-low-bg: rgba(255,255,255,0.04);
+    --score-low: #444;
+    --hover: rgba(255,255,255,0.025);
+    --r: 9px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: rgba(124,106,247,0.28); }
+
+  a { color: var(--accent2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .gradient-text {
+    background: var(--grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .page-wrap {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  @media (max-width: 640px) { .page-wrap { padding: 0 16px; } }
+
+  /* ── Hero ── */
+  #header {
+    padding: 64px 0 40px;
+    text-align: center;
+  }
+
+  #header h1 {
+    font-size: clamp(40px, 5.5vw, 62px);
+    font-weight: 600;
+    letter-spacing: -2px;
+    line-height: 1.05;
+    margin-bottom: 12px;
+  }
+
+  #subtitle {
+    color: var(--muted2);
+    font-size: 14px;
+    margin-bottom: 36px;
+  }
+
+  .drop-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  #drop-zone {
+    border: 1.5px dashed var(--border-bright);
+    border-radius: var(--r);
+    padding: 16px 28px;
+    color: var(--muted2);
+    font-size: 13px;
+    cursor: default;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    min-width: 260px;
+  }
+
+  #drop-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(124,106,247,0.06);
+    color: var(--accent);
+  }
+
+  #drop-zone.has-file {
+    border-color: var(--score-high);
+    color: var(--score-high);
+  }
+
+  #error-msg {
+    color: #f87171;
+    font-size: 13px;
+    margin-top: 8px;
+    display: none;
+    text-align: center;
+  }
+
+  .btn {
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    padding: 9px 18px;
+    border-radius: var(--r);
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .btn:hover { background: var(--surface3); border-color: rgba(255,255,255,0.2); }
+  .btn-icon { width: 38px; padding: 0; font-size: 16px; flex-shrink: 0; }
+
+  /* ── Filters bar ── */
+  #filters-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(8,8,8,0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 0;
+    display: none;
+  }
+  #filters-bar.visible { display: block; }
+
+  .filters-inner {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .filters-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .filters-right {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .filters-right .btn {
+    flex: 1;
+    width: 42px;
+    padding: 0;
+    font-size: 16px;
+  }
+
+  .filters-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-input, .filter-select {
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .filter-input:focus, .filter-select:focus { border-color: var(--accent); }
+  .filter-input { flex: 1; min-width: 180px; }
+  .filter-select { cursor: pointer; }
+  .filter-select option { background: #161616; }
+
+  /* ── Main ── */
+  #main {
+    padding: 24px 0 80px;
+  }
+
+  #empty-state {
+    text-align: center;
+    padding: 100px 20px;
+    color: var(--muted2);
+  }
+  #empty-state .big-icon { font-size: 44px; margin-bottom: 20px; }
+  #empty-state h2 { font-size: 20px; font-weight: 500; margin-bottom: 8px; color: var(--text); }
+  #empty-state p { font-size: 13px; }
+
+  /* ── Sections ── */
+  .section {
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 18px;
+    background: var(--surface);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s;
+  }
+  .section-header:hover { background: var(--surface2); }
+
+  .arrow {
+    font-size: 10px;
+    color: var(--muted2);
+    transition: transform 0.2s;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .section-header.open .arrow { transform: rotate(90deg); }
+
+  .section-title { font-size: 14px; font-weight: 600; }
+
+  .section-count {
+    font-size: 12px;
+    color: var(--muted2);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 1px 8px;
+    border-radius: 20px;
+  }
+
+  .section-body { display: none; }
+  .section-body.open { display: block; }
+
+  /* ── Tables ── */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    background: var(--surface2);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 500;
+    color: var(--muted2);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+  thead th.sortable { cursor: pointer; }
+  thead th.sortable:hover { color: var(--text); }
+  thead th .sort-arrow { margin-left: 4px; opacity: 0.35; }
+  thead th.sort-active { color: var(--text); }
+  thead th.sort-active .sort-arrow { opacity: 1; color: var(--accent); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.08s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--hover); }
+
+  td {
+    padding: 10px 14px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  td.desc-cell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 280px;
+    color: var(--muted2);
+  }
+
+  .repo-link {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent2);
+  }
+
+  .score-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-weight: 600;
+    font-size: 12px;
+    min-width: 30px;
+    text-align: center;
+  }
+  .score-high { background: var(--score-high-bg); color: var(--score-high); }
+  .score-mid  { background: var(--score-mid-bg);  color: var(--score-mid); }
+  .score-low  { background: var(--score-low-bg);  color: var(--score-low); }
+
+  .no-results {
+    text-align: center;
+    color: var(--muted2);
+    padding: 40px;
+    font-size: 13px;
+  }
+
+  /* ── Pagination ── */
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 13px;
+    color: var(--muted2);
+    flex-wrap: wrap;
+  }
+  .pagination .btn { padding: 6px 14px; font-size: 12px; }
+  .page-jump { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  .page-jump input {
+    width: 52px;
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    text-align: center;
+    outline: none;
+  }
+  .page-jump input:focus { border-color: var(--accent); }
+
+  /* ── Org Tracker ── */
+  #org-tracker {
+    border-top: 1px solid var(--border);
+    padding: 40px 0 60px;
+    display: block;
+  }
+
+  .tracker-section { margin-bottom: 8px; }
+
+  .tracker-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    padding: 10px 0;
+    color: var(--muted2);
+  }
+  .tracker-header:hover { color: var(--text); }
+
+  .settings-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 10px 16px;
+    align-items: center;
+    max-width: 600px;
+    margin-bottom: 12px;
+  }
+  .settings-grid label { font-size: 13px; color: var(--muted2); }
+  .muted-label { font-size: 11px; color: var(--muted); display: block; }
+  .settings-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  .org-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .org-input-row input {
+    flex: 1;
+    min-width: 240px;
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    padding: 9px 14px;
+    border-radius: var(--r);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+  }
+  .org-input-row input:focus { border-color: var(--accent); }
+
+  #org-error { color: #f87171; font-size: 12px; margin-top: 4px; display: none; }
+
+  #org-status {
+    font-size: 13px;
+    margin-top: 8px;
+    padding: 10px 14px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+  }
+  #org-status.success { border-color: var(--score-high); color: var(--score-high); background: var(--score-high-bg); }
+  #org-status.error   { border-color: #f87171; color: #f87171; background: rgba(248,113,113,0.08); }
+  #org-status.pending { border-color: var(--accent); color: var(--accent); background: rgba(124,106,247,0.08); }
+
+  #org-list { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .org-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .pending-badge {
+    font-size: 10px;
+    color: var(--muted2);
+    background: var(--surface3);
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <div id="header">
+    <h1><span class="gradient-text">Research Radar</span></h1>
+    <p id="subtitle">Drop a weekly_digest.csv to explore academic repos</p>
+    <div class="drop-wrap">
+      <div id="drop-zone">Drop weekly_digest.csv here — or click to browse</div>
+      <input type="file" id="file-input" accept=".csv" style="display:none">
+      <button class="btn" id="reload-btn" style="display:none">↺ Reload</button>
+    </div>
+    <div id="error-msg"></div>
+  </div>
+</div>
+
+<div id="filters-bar">
+  <div class="page-wrap">
+    <div class="filters-inner">
+      <div class="filters-left">
+        <div class="filters-row">
+          <input type="text" id="search-input" class="filter-input" placeholder="Search repos, descriptions, schools…">
+        </div>
+        <div class="filters-row">
+          <select id="school-select" class="filter-select"><option value="">All Schools</option></select>
+          <select id="category-select" class="filter-select"><option value="">All Categories</option></select>
+          <select id="score-select" class="filter-select">
+            <option value="">All Scores</option>
+            <option value="high">High (≥ 7)</option>
+            <option value="mid">Mid (4–6)</option>
+            <option value="low">Low (&lt; 4)</option>
+          </select>
+          <select id="paper-select" class="filter-select">
+            <option value="">Has Paper: All</option>
+            <option value="yes">Has Paper: Yes</option>
+            <option value="no">Has Paper: No</option>
+          </select>
+        </div>
+      </div>
+      <div class="filters-right">
+        <button class="btn" id="search-btn">🔍</button>
+        <button class="btn" id="clear-btn">✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div id="main">
+    <div id="empty-state">
+      <div class="big-icon">🔬</div>
+      <h2>No data loaded</h2>
+      <p>Drag and drop your <code>weekly_digest.csv</code> onto the drop zone above.</p>
+    </div>
+
+    <div id="tables-area" style="display:none">
+
+      <!-- New This Week -->
+      <div class="section">
+        <div class="section-header open" id="hdr-new" onclick="toggleSection('new')">
+          <span class="arrow">▶</span>
+          <span class="section-title">🔥 New This Week</span>
+          <span class="section-count" id="count-new">0</span>
+        </div>
+        <div class="section-body open" id="body-new">
+          <div class="table-wrap">
+            <table id="table-new"><thead></thead><tbody></tbody></table>
+          </div>
+          <div class="pagination" id="pagination-new">
+            <button class="btn" id="prev-btn-new" onclick="changePageNew(-1)">← Prev</button>
+            <span class="page-info" id="page-info-new"></span>
+            <button class="btn" id="next-btn-new" onclick="changePageNew(1)">Next →</button>
+            <button class="btn" id="view-all-btn-new" onclick="toggleViewAllNew()">View All</button>
+            <div class="page-jump">
+              <span>Go to</span>
+              <input type="number" id="page-jump-input-new" min="1" placeholder="…">
+              <button class="btn" onclick="jumpToPageNew()">Go</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Scorers -->
+      <div class="section">
+        <div class="section-header open" id="hdr-top" onclick="toggleSection('top')">
+          <span class="arrow">▶</span>
+          <span class="section-title">⭐ Highest Scorers</span>
+          <span class="section-count" id="count-top">0</span>
+        </div>
+        <div class="section-body open" id="body-top">
+          <div class="table-wrap">
+            <table id="table-top"><thead></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- All Repos -->
+      <div class="section">
+        <div class="section-header open" id="hdr-all" onclick="toggleSection('all')">
+          <span class="arrow">▶</span>
+          <span class="section-title">📋 All Repos</span>
+          <span class="section-count" id="count-all">0</span>
+        </div>
+        <div class="section-body open" id="body-all">
+          <div class="table-wrap">
+            <table id="table-all"><thead></thead><tbody></tbody></table>
+          </div>
+          <div class="pagination" id="pagination-all">
+            <button class="btn" id="prev-btn" onclick="changePage(-1)">← Prev</button>
+            <span class="page-info" id="page-info"></span>
+            <button class="btn" id="next-btn" onclick="changePage(1)">Next →</button>
+            <button class="btn" id="view-all-btn" onclick="toggleViewAll()">View All</button>
+            <div class="page-jump">
+              <span>Go to</span>
+              <input type="number" id="page-jump-input" min="1" placeholder="…">
+              <button class="btn" onclick="jumpToPage()">Go</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tables-area -->
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div id="org-tracker">
+
+    <!-- Settings -->
+    <div class="tracker-section">
+      <div class="tracker-header" onclick="toggleTracker()">
+        <span class="arrow" id="tracker-arrow">▶</span>
+        <span style="font-weight:600">⚙️ GitHub Settings</span>
+        <span style="font-size:12px;color:var(--muted2);margin-left:8px">required to trigger scrape runs</span>
+      </div>
+      <div id="tracker-settings" style="display:none;padding:16px 0 4px">
+        <div class="settings-grid">
+          <label>Personal Access Token <span class="muted-label">(actions:write scope)</span></label>
+          <input type="password" id="gh-pat" class="filter-input" placeholder="ghp_…" oninput="saveSettings()">
+          <label>Repo</label>
+          <input type="text" id="gh-repo" class="filter-input" placeholder="owner/repo-name" oninput="saveSettings()">
+          <label>Workflow file</label>
+          <input type="text" id="gh-workflow" class="filter-input" placeholder="scrape.yml" oninput="saveSettings()">
+        </div>
+        <p class="settings-hint">Settings are saved to localStorage only — never sent anywhere except the GitHub API.</p>
+      </div>
+    </div>
+
+    <!-- Add Org -->
+    <div class="tracker-section" style="margin-top:20px">
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:6px">Add Org to Next Scrape</h3>
+      <p style="font-size:13px;color:var(--muted2);margin-bottom:14px">Triggers a GitHub Actions run that scrapes the org and commits results back to the repo.</p>
+      <div class="org-input-row">
+        <input type="text" id="org-url-input" placeholder="https://github.com/myorg  or  myorg">
+        <button class="btn" id="add-org-btn" onclick="addOrg()">Trigger Scrape</button>
+      </div>
+      <div id="org-error"></div>
+      <div id="org-status" style="display:none"></div>
+    </div>
+
+    <!-- Tracked orgs from CSV -->
+    <div class="tracker-section" style="margin-top:24px">
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:12px">Orgs in Current CSV</h3>
+      <div id="org-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const state = {
+  rows:        [],
+  baseNew:     [],   // rows where new_repo===true, sorted by score desc
+  baseTop:     [],   // top 50 by score from all rows
+  filteredNew: [],
+  filteredTop: [],
+  filteredAll: [],
+  sortCol: 'potential_score',
+  sortDir: -1,
+  page: 1,
+  pageNew: 1,
+  PAGE_SIZE: 50,
+  viewAll: false,
+  viewAllNew: false,
+  searchText: '',
+};
+
+// ── CSV Parser (RFC 4180 single-pass) ─────────────────────────────────────
+function parseCSV(text) {
+  const rows = [];
+  let headers = null, fields = [], field = '', inQuote = false, i = 0;
+
+  const flushRow = () => {
+    fields.push(field); field = '';
+    if (!headers) {
+      headers = fields.map(h => h.trim());
+    } else if (fields.length > 1 || fields[0] !== '') {
+      const obj = {};
+      headers.forEach((h, idx) => { obj[h] = fields[idx] ?? ''; });
+      rows.push(obj);
+    }
+    fields = [];
+  };
+
+  while (i < text.length) {
+    const c = text[i];
+    if (inQuote) {
+      if (c === '"') {
+        if (i + 1 < text.length && text[i + 1] === '"') { field += '"'; i += 2; }
+        else { inQuote = false; i++; }
+      } else { field += c; i++; }
+    } else {
+      if      (c === '"')  { inQuote = true; i++; }
+      else if (c === ',')  { fields.push(field); field = ''; i++; }
+      else if (c === '\n') { flushRow(); i++; }
+      else if (c === '\r') { if (i + 1 < text.length && text[i + 1] === '\n') i++; flushRow(); i++; }
+      else                 { field += c; i++; }
+    }
+  }
+  if (field !== '' || fields.length > 0) {
+    fields.push(field);
+    if (headers && (fields.length > 1 || fields[0] !== '')) {
+      const obj = {};
+      headers.forEach((h, idx) => { obj[h] = fields[idx] ?? ''; });
+      rows.push(obj);
+    }
+  }
+
+  if (!rows.length) throw new Error('No data rows found');
+
+  const INTS   = new Set(['stars','forks','open_issues','size_kb','star_delta','score_delta']);
+  const FLOATS = new Set(['star_velocity','potential_score']);
+  rows.forEach(r => {
+    Object.keys(r).forEach(k => {
+      if      (r[k] === 'True')  r[k] = true;
+      else if (r[k] === 'False') r[k] = false;
+      else if (INTS.has(k)   && typeof r[k] === 'string') r[k] = parseInt(r[k], 10)   || 0;
+      else if (FLOATS.has(k) && typeof r[k] === 'string') r[k] = parseFloat(r[k]) || 0;
+    });
+  });
+  return rows;
+}
+
+// ── Load CSV ───────────────────────────────────────────────────────────────
+function loadCSV(file) {
+  if (!file || !file.name.endsWith('.csv')) { showError('Please drop a .csv file.'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      state.rows = parseCSV(e.target.result);
+      state.page = 1;
+      onDataLoaded();
+      showError('');
+    } catch(err) { showError('Failed to parse CSV: ' + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+}
+
+// ── On Data Loaded ─────────────────────────────────────────────────────────
+function onDataLoaded() {
+  state.baseNew = state.rows
+    .filter(r => r.new_repo === true)
+    .sort((a, b) => b.potential_score - a.potential_score);
+
+  state.baseTop = [...state.rows]
+    .sort((a, b) => b.potential_score - a.potential_score)
+    .slice(0, 50);
+
+  populateDropdowns();
+  applyFilters();
+  renderAll();
+
+  document.getElementById('tables-area').style.display = 'block';
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('filters-bar').classList.add('visible');
+  document.getElementById('reload-btn').style.display = '';
+  document.getElementById('org-tracker').style.display = 'block';
+
+  const d = state.rows[0]?.scraped_at || '';
+  document.getElementById('subtitle').textContent =
+    `Last run: ${d}  ·  ${state.rows.length.toLocaleString()} repos`;
+
+  const dz = document.getElementById('drop-zone');
+  dz.classList.add('has-file');
+  dz.textContent = '✓ ' + (state.rows[0]?.scraped_at || 'loaded');
+
+  renderOrgList();
+}
+
+// ── Dropdowns ─────────────────────────────────────────────────────────────
+function populateDropdowns() {
+  const schools = [...new Set(state.rows.map(r => r.school).filter(Boolean))].sort();
+  const cats    = [...new Set(state.rows.map(r => r.category).filter(Boolean))].sort();
+  fillSelect('school-select',   schools, 'All Schools');
+  fillSelect('category-select', cats,    'All Categories');
+}
+
+function fillSelect(id, values, placeholder) {
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">${placeholder}</option>`;
+  values.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    if (v === cur) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────
+function matchesFilters(r, q, school, cat, score, paper) {
+  if (q) {
+    const hay = ((r.repo||'') + ' ' + (r.description||'') + ' ' + (r.school||'')).toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  if (school && (r.school||'').trim() !== school) return false;
+  if (cat    && (r.category||'').trim() !== cat)  return false;
+  if (score === 'high' && r.potential_score < 7)  return false;
+  if (score === 'mid'  && (r.potential_score < 4 || r.potential_score > 6)) return false;
+  if (score === 'low'  && r.potential_score >= 4) return false;
+  if (paper === 'yes'  && r.has_paper !== true)   return false;
+  if (paper === 'no'   && r.has_paper === true)   return false;
+  return true;
+}
+
+function applyFilters() {
+  const q      = state.searchText.toLowerCase().trim();
+  const school = document.getElementById('school-select').value;
+  const cat    = document.getElementById('category-select').value;
+  const score  = document.getElementById('score-select').value;
+  const paper  = document.getElementById('paper-select').value;
+  const pred   = r => matchesFilters(r, q, school, cat, score, paper);
+  state.filteredNew = state.baseNew.filter(pred);
+  state.filteredTop = state.baseTop.filter(pred);
+  state.filteredAll = state.rows.filter(pred);
+  state.page = 1;
+  state.pageNew = 1;
+}
+
+// ── Render All ─────────────────────────────────────────────────────────────
+function renderAll() {
+  renderNewThisWeek();
+  renderTopScorers();
+  renderAllRepos();
+}
+
+// ── Table Builder ──────────────────────────────────────────────────────────
+const COLS = [
+  { key: 'repo',               label: 'Repo',         sort: true  },
+  { key: 'school',             label: 'School',       sort: true  },
+  { key: 'stars',              label: 'Stars',        sort: true  },
+  { key: 'star_velocity',      label: 'Stars/Mo',     sort: true  },
+  { key: 'potential_score',    label: 'Score',        sort: true  },
+  { key: 'category',           label: 'Category',     sort: true  },
+  { key: 'has_product_signal', label: 'Product',      sort: false },
+  { key: 'has_paper',          label: 'Paper',        sort: false },
+  { key: 'last_updated',       label: 'Last Updated', sort: true  },
+];
+
+function scoreTier(s) {
+  if (s >= 7) return 'high';
+  if (s >= 4) return 'mid';
+  return 'low';
+}
+
+function setTable(tableId, rows, sortable) {
+  const tbl  = document.getElementById(tableId);
+  const head = tbl.querySelector('thead');
+  const body = tbl.querySelector('tbody');
+
+  head.innerHTML = '<tr>' + COLS.map(c => {
+    if (!sortable || !c.sort) return `<th>${c.label}</th>`;
+    const active = state.sortCol === c.key ? ' sort-active' : '';
+    const arrow  = state.sortCol === c.key
+      ? `<span class="sort-arrow">${state.sortDir === 1 ? '▲' : '▼'}</span>`
+      : `<span class="sort-arrow">▲</span>`;
+    return `<th class="sortable${active}" onclick="setSort('${c.key}')">${c.label}${arrow}</th>`;
+  }).join('') + '</tr>';
+
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="${COLS.length}" class="no-results">No repos match your filters.</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = rows.map(r => {
+    const tier  = scoreTier(r.potential_score);
+    const repo  = `<a href="${r.url||'#'}" target="_blank" class="repo-link">${r.org||''}/${r.repo||''}</a>`;
+    const score = `<span class="score-badge score-${tier}">${r.potential_score}</span>`;
+    const prod  = r.has_product_signal === true ? '📦' : '';
+    const paper = r.has_paper === true ? '📄' : '';
+    const vel   = typeof r.star_velocity === 'number' ? r.star_velocity.toFixed(1) : r.star_velocity;
+    return `<tr>
+      <td>${repo}</td>
+      <td>${r.school||''}</td>
+      <td>${(r.stars||0).toLocaleString()}</td>
+      <td>${vel}</td>
+      <td>${score}</td>
+      <td>${r.category||''}</td>
+      <td style="text-align:center">${prod}</td>
+      <td style="text-align:center">${paper}</td>
+      <td>${r.last_updated||''}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Section renders ────────────────────────────────────────────────────────
+function renderNewThisWeek() {
+  const total = state.filteredNew.length;
+  const pages = Math.max(1, Math.ceil(total / state.PAGE_SIZE));
+  if (state.pageNew > pages) state.pageNew = pages;
+
+  document.getElementById('count-new').textContent = total.toLocaleString();
+
+  const rows = state.viewAllNew
+    ? state.filteredNew
+    : state.filteredNew.slice((state.pageNew - 1) * state.PAGE_SIZE, state.pageNew * state.PAGE_SIZE);
+
+  setTable('table-new', rows, false);
+
+  const pi = document.getElementById('page-info-new');
+  pi.textContent = state.viewAllNew ? `All ${total.toLocaleString()} repos` : `Page ${state.pageNew} of ${pages}`;
+  document.getElementById('prev-btn-new').disabled     = state.viewAllNew || state.pageNew <= 1;
+  document.getElementById('next-btn-new').disabled     = state.viewAllNew || state.pageNew >= pages;
+  document.getElementById('view-all-btn-new').textContent = state.viewAllNew ? 'Paginate' : 'View All';
+  document.getElementById('page-jump-input-new').max   = pages;
+}
+
+function changePageNew(delta) {
+  const pages = Math.max(1, Math.ceil(state.filteredNew.length / state.PAGE_SIZE));
+  state.pageNew = Math.max(1, Math.min(pages, state.pageNew + delta));
+  renderNewThisWeek();
+}
+
+function jumpToPageNew() {
+  const v = parseInt(document.getElementById('page-jump-input-new').value, 10);
+  const pages = Math.max(1, Math.ceil(state.filteredNew.length / state.PAGE_SIZE));
+  if (!isNaN(v) && v >= 1 && v <= pages) { state.pageNew = v; renderNewThisWeek(); }
+}
+
+function toggleViewAllNew() {
+  state.viewAllNew = !state.viewAllNew;
+  if (state.viewAllNew) state.pageNew = 1;
+  renderNewThisWeek();
+}
+
+function renderTopScorers() {
+  setTable('table-top', state.filteredTop, false);
+  document.getElementById('count-top').textContent = state.filteredTop.length.toLocaleString();
+}
+
+function sortFn() {
+  return (a, b) => {
+    const av = a[state.sortCol] ?? '';
+    const bv = b[state.sortCol] ?? '';
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * state.sortDir;
+    return String(av).localeCompare(String(bv)) * state.sortDir;
+  };
+}
+
+function renderAllRepos() {
+  const sorted = [...state.filteredAll].sort(sortFn());
+  const total  = state.filteredAll.length;
+  const pages  = Math.max(1, Math.ceil(total / state.PAGE_SIZE));
+  if (state.page > pages) state.page = pages;
+
+  document.getElementById('count-all').textContent = total.toLocaleString();
+
+  let rows;
+  if (state.viewAll) {
+    rows = sorted;
+  } else {
+    const start = (state.page - 1) * state.PAGE_SIZE;
+    rows = sorted.slice(start, start + state.PAGE_SIZE);
+  }
+
+  setTable('table-all', rows, true);
+
+  const pi = document.getElementById('page-info');
+  if (state.viewAll) {
+    pi.textContent = `All ${total.toLocaleString()} repos`;
+  } else {
+    pi.textContent = `Page ${state.page} of ${pages}`;
+  }
+
+  document.getElementById('prev-btn').disabled    = state.viewAll || state.page <= 1;
+  document.getElementById('next-btn').disabled    = state.viewAll || state.page >= pages;
+  document.getElementById('view-all-btn').textContent = state.viewAll ? 'Paginate' : 'View All';
+  document.getElementById('page-jump-input').max  = pages;
+}
+
+function setSort(col) {
+  if (state.sortCol === col) state.sortDir *= -1;
+  else { state.sortCol = col; state.sortDir = -1; }
+  state.page = 1;
+  renderAllRepos();
+}
+
+function changePage(delta) {
+  const pages = Math.max(1, Math.ceil(state.filteredAll.length / state.PAGE_SIZE));
+  state.page = Math.max(1, Math.min(pages, state.page + delta));
+  renderAllRepos();
+}
+
+function jumpToPage() {
+  const v = parseInt(document.getElementById('page-jump-input').value, 10);
+  const pages = Math.max(1, Math.ceil(state.filteredAll.length / state.PAGE_SIZE));
+  if (!isNaN(v) && v >= 1 && v <= pages) { state.page = v; renderAllRepos(); }
+}
+
+function toggleViewAll() {
+  state.viewAll = !state.viewAll;
+  if (state.viewAll) state.page = 1;
+  renderAllRepos();
+}
+
+// ── Collapsible sections ───────────────────────────────────────────────────
+function toggleSection(id) {
+  const hdr  = document.getElementById('hdr-' + id);
+  const body = document.getElementById('body-' + id);
+  hdr.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+// ── Search / filter events ─────────────────────────────────────────────────
+document.getElementById('search-btn').addEventListener('click', () => {
+  state.searchText = document.getElementById('search-input').value;
+  applyFilters(); renderAll();
+});
+
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { state.searchText = e.target.value; applyFilters(); renderAll(); }
+});
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+  document.getElementById('search-input').value = '';
+  document.getElementById('school-select').value = '';
+  document.getElementById('category-select').value = '';
+  document.getElementById('score-select').value = '';
+  document.getElementById('paper-select').value = '';
+  state.searchText = '';
+  applyFilters(); renderAll();
+});
+
+['school-select','category-select','score-select','paper-select'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => { applyFilters(); renderAll(); });
+});
+
+// ── Drop zone ─────────────────────────────────────────────────────────────
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) loadCSV(e.dataTransfer.files[0]);
+});
+dz.addEventListener('click', () => document.getElementById('file-input').click());
+
+document.getElementById('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) loadCSV(e.target.files[0]);
+});
+
+document.addEventListener('dragover', e => { if (!e.target.closest('#drop-zone')) e.preventDefault(); });
+document.addEventListener('drop', e => {
+  if (e.target.closest('#drop-zone')) return;
+  e.preventDefault();
+  if (e.dataTransfer.files[0]) loadCSV(e.dataTransfer.files[0]);
+});
+
+// ── Reload ─────────────────────────────────────────────────────────────────
+document.getElementById('reload-btn').addEventListener('click', () => {
+  Object.assign(state, {
+    rows:[], baseNew:[], baseTop:[],
+    filteredNew:[], filteredTop:[], filteredAll:[],
+    page:1, pageNew:1, viewAll:false, viewAllNew:false, searchText:''
+  });
+  document.getElementById('tables-area').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'block';
+  document.getElementById('filters-bar').classList.remove('visible');
+  document.getElementById('reload-btn').style.display = 'none';
+  document.getElementById('org-tracker').style.display = 'none';
+  document.getElementById('subtitle').textContent = 'Drop a weekly_digest.csv to explore academic repos';
+  const dzr = document.getElementById('drop-zone');
+  dzr.classList.remove('has-file');
+  dzr.textContent = 'Drop weekly_digest.csv here — or click to browse';
+  document.getElementById('file-input').value = '';
+  document.getElementById('search-input').value = '';
+  showError('');
+});
+
+// ── Settings (localStorage) ────────────────────────────────────────────────
+const LS_SETTINGS = 'researchRadar_settings';
+
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem(LS_SETTINGS) || '{}'); } catch { return {}; }
+}
+
+function saveSettings() {
+  const s = {
+    pat:      document.getElementById('gh-pat').value.trim(),
+    repo:     document.getElementById('gh-repo').value.trim(),
+    workflow: document.getElementById('gh-workflow').value.trim(),
+  };
+  localStorage.setItem(LS_SETTINGS, JSON.stringify(s));
+}
+
+function applySettings() {
+  const s = loadSettings();
+  if (s.pat)      document.getElementById('gh-pat').value      = s.pat;
+  if (s.repo)     document.getElementById('gh-repo').value     = s.repo;
+  if (s.workflow) document.getElementById('gh-workflow').value = s.workflow;
+}
+
+function toggleTracker() {
+  const panel = document.getElementById('tracker-settings');
+  const arrow = document.getElementById('tracker-arrow');
+  const open  = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  arrow.style.transform = open ? 'rotate(90deg)' : '';
+}
+
+// ── Org list from CSV ──────────────────────────────────────────────────────
+function renderOrgList() {
+  const csvOrgs = [...new Set(state.rows.map(r => r.org).filter(Boolean))].sort();
+  const el = document.getElementById('org-list');
+  if (!csvOrgs.length) {
+    el.innerHTML = '<span style="color:var(--muted2);font-size:12px">Load a CSV to see orgs.</span>';
+    return;
+  }
+  el.innerHTML = csvOrgs.map(o => `<span class="org-chip">${o}</span>`).join('');
+}
+
+// ── Add Org → workflow_dispatch ────────────────────────────────────────────
+async function addOrg() {
+  const input = document.getElementById('org-url-input');
+  const errEl = document.getElementById('org-error');
+  const statEl = document.getElementById('org-status');
+  errEl.style.display = 'none';
+  statEl.style.display = 'none';
+  statEl.className = '';
+
+  const raw = input.value.trim();
+  if (!raw) { showOrgErr('Enter a GitHub org URL or login.'); return; }
+
+  let orgLogin = '';
+  try {
+    const url = raw.startsWith('http') ? new URL(raw) : new URL('https://' + raw);
+    orgLogin = url.pathname.replace(/^\//, '').split('/')[0];
+  } catch { orgLogin = raw.replace(/.*github\.com\//, '').split('/')[0]; }
+  if (!orgLogin) { showOrgErr('Could not parse org name from input.'); return; }
+
+  const s = loadSettings();
+  if (!s.pat)      { showOrgErr('Add your GitHub PAT in ⚙️ GitHub Settings above.'); return; }
+  if (!s.repo)     { showOrgErr('Add your repo (owner/name) in ⚙️ GitHub Settings above.'); return; }
+  const workflow = s.workflow || 'scrape.yml';
+
+  const btn = document.getElementById('add-org-btn');
+  btn.disabled = true;
+  btn.textContent = 'Triggering…';
+  statEl.className = 'pending';
+  statEl.textContent = `Dispatching workflow for org "${orgLogin}"…`;
+  statEl.style.display = 'block';
+
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${s.repo}/actions/workflows/${workflow}/dispatches`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${s.pat}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ref: 'main', inputs: { extra_org: orgLogin } }),
+      }
+    );
+
+    if (res.status === 204) {
+      statEl.className = 'success';
+      statEl.textContent = `✓ Workflow triggered for "${orgLogin}". Results will be committed to the repo after the run completes (~10–30 min).`;
+      input.value = '';
+    } else {
+      const body = await res.json().catch(() => ({}));
+      const msg  = body.message || `HTTP ${res.status}`;
+      statEl.className = 'error';
+      statEl.textContent = `✗ GitHub API error: ${msg}`;
+    }
+  } catch (err) {
+    statEl.className = 'error';
+    statEl.textContent = `✗ Network error: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Trigger Scrape';
+  }
+}
+
+function showOrgErr(msg) {
+  const el = document.getElementById('org-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+// Load saved settings on startup
+applySettings();
+</script>
+</body>
+</html>

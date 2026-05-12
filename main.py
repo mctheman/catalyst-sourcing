@@ -59,8 +59,16 @@ CATEGORY_SIGNALS = {
 # ── helpers (unchanged) ───────────────────────────────────────────────────────
 
 def get(url, params=None):
-    while True:
-        r = requests.get(url, headers=GH, params=params, timeout=15)
+    for attempt in range(3):
+        try:
+            r = requests.get(url, headers=GH, params=params, timeout=30)
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError):
+            if attempt == 2:
+                print(f"  [failed after 3 retries] {url}")
+                return {}
+            print(f"  [network error] retrying in 10s...")
+            time.sleep(10)
+            continue
         if r.status_code in (403, 429):
             wait = max(int(r.headers.get("X-RateLimit-Reset", time.time() + 60)) - int(time.time()), 5)
             print(f"rate limit — waiting {wait}s")
@@ -69,9 +77,18 @@ def get(url, params=None):
         if r.status_code in (404, 422):
             return {} if isinstance(r.json(), dict) else []
         return r.json()
+    return {}
 
 
 PAPER_PLAIN = {"paper", "preprint", "proceedings"}
+
+
+ARXIV_RE = re.compile(r'arxiv\.org/(?:abs|pdf)/(\d{4}\.\d{4,5}(?:v\d+)?)', re.IGNORECASE)
+
+
+def extract_arxiv_url(text: str) -> str:
+    m = ARXIV_RE.search(text)
+    return f"https://arxiv.org/abs/{m.group(1)}" if m else ""
 
 
 def has_paper_signal(text: str) -> bool:
@@ -104,6 +121,12 @@ def find_orgs(school):
 
 
 def get_repos(org):
+    info = get(f"https://api.github.com/orgs/{org}")
+    time.sleep(1)
+    n = info.get("public_repos", 0) if isinstance(info, dict) else 0
+    if n > 300:
+        print(f"  skipping {org} (too large: {n} repos)")
+        return []
     repos, page = [], 1
     while True:
         batch = get(f"https://api.github.com/orgs/{org}/repos", {"type": "public", "per_page": 100, "page": page})
@@ -144,7 +167,7 @@ def readme_signals(text):
     return has_paper, has_product
 
 
-def star_velocity(r):
+def stars_per_month(r):
     created = r.get("created_at") or ""
     if not created:
         return 0
@@ -213,10 +236,57 @@ parser.add_argument("--schools", type=int, default=None, help="Only run the firs
 args = parser.parse_args()
 
 target_schools = SCHOOLS[: args.schools] if args.schools else SCHOOLS
+extra_org = os.getenv("EXTRA_ORG", "").strip()
 
 Path("runs").mkdir(exist_ok=True)
 start = time.time()
 rows  = []
+
+# ── Extra org (from workflow_dispatch input) ──────────────────────────────────
+if extra_org:
+    print(f"[extra org] scraping {extra_org} ...")
+    for r in get_repos(extra_org):
+        if r.get("fork") or r.get("archived"):
+            continue
+        if (r.get("pushed_at") or "") < CUTOFF:
+            continue
+        emails = edu_emails(extra_org, r["name"])
+        desc_has_paper = has_paper_signal(r.get("description") or "")
+        readme = ""
+        if r.get("stargazers_count", 0) >= 5:
+            readme = fetch_readme(extra_org, r["name"])
+            readme_has_paper, has_product = readme_signals(readme)
+            has_paper = desc_has_paper or readme_has_paper
+        else:
+            has_paper, has_product = desc_has_paper, False
+        arxiv_url = (extract_arxiv_url(r.get("description") or "") or extract_arxiv_url(readme)) if has_paper else ""
+        velocity  = stars_per_month(r)
+        topics    = r.get("topics") or []
+        tag_text  = " ".join([r.get("name", ""), r.get("description", "") or "", " ".join(topics)]).lower()
+        row = {
+            "scraped_at":        TODAY,
+            "school":            "External",
+            "org":               extra_org,
+            "repo":              r["name"],
+            "url":               r["html_url"],
+            "stars":             r["stargazers_count"],
+            "forks":             r["forks_count"],
+            "last_updated":      (r.get("pushed_at") or "")[:10],
+            "description":       (r.get("description") or "")[:120],
+            "edu_verified":      bool(emails),
+            "edu_emails":        ", ".join(emails),
+            "language":          r.get("language") or "",
+            "topics":            ", ".join(topics),
+            "open_issues":       r.get("open_issues_count", 0),
+            "size_kb":           r.get("size", 0),
+            "star_velocity":     velocity,
+            "has_paper":         has_paper,
+            "has_product_signal": has_product,
+            "category":          categorize(tag_text),
+            "potential_score":   0,
+        }
+        row["potential_score"] = compute_score(row, has_paper, has_product)
+        rows.append(row)
 
 for school_idx, school in enumerate(target_schools, 1):
     elapsed = time.time() - start
@@ -240,6 +310,7 @@ for school_idx, school in enumerate(target_schools, 1):
             emails = edu_emails(org, r["name"])
             desc_has_paper = has_paper_signal(r.get("description") or "")
 
+            readme = ""
             if r.get("stargazers_count", 0) >= 5 and bool(emails):
                 readme = fetch_readme(org, r["name"])
                 readme_has_paper, has_product = readme_signals(readme)
@@ -247,37 +318,47 @@ for school_idx, school in enumerate(target_schools, 1):
             else:
                 has_paper, has_product = desc_has_paper, False
 
-            velocity = star_velocity(r)
+            if has_paper:
+                arxiv_url = extract_arxiv_url(r.get("description") or "") or extract_arxiv_url(readme)
+            else:
+                arxiv_url = ""
+
+            velocity = stars_per_month(r)
             topics   = r.get("topics") or []
             tag_text = " ".join([r.get("name", ""), r.get("description", "") or "", " ".join(topics)]).lower()
             category = categorize(tag_text)
 
             row = {
-                "scraped_at":        TODAY,
-                "school":            school,
-                "org":               org,
-                "repo":              r["name"],
-                "url":               r["html_url"],
-                "stars":             r["stargazers_count"],
-                "forks":             r["forks_count"],
-                "last_updated":      (r.get("pushed_at") or "")[:10],
-                "description":       (r.get("description") or "")[:120],
-                "edu_verified":      bool(emails),
-                "edu_emails":        ", ".join(emails),
-                "language":          r.get("language") or "",
-                "topics":            ", ".join(topics),
-                "open_issues":       r.get("open_issues_count", 0),
-                "size_kb":           r.get("size", 0),
-                "star_velocity":     velocity,
-                "has_paper":         has_paper,
+                "scraped_at":         TODAY,
+                "school":             school,
+                "org":                org,
+                "repo":               r["name"],
+                "url":                r["html_url"],
+                "stars":              r["stargazers_count"],
+                "forks":              r["forks_count"],
+                "last_updated":       (r.get("pushed_at") or "")[:10],
+                "description":        (r.get("description") or "")[:120],
+                "edu_verified":       bool(emails),
+                "edu_emails":         ", ".join(emails),
+                "language":           r.get("language") or "",
+                "topics":             ", ".join(topics),
+                "open_issues":        r.get("open_issues_count", 0),
+                "size_kb":            r.get("size", 0),
+                "star_velocity":      velocity,
+                "has_paper":          has_paper,
                 "has_product_signal": has_product,
-                "category":          category,
-                "potential_score":   0,
+                "category":           category,
+                "potential_score":    0,
             }
             row["potential_score"] = compute_score(row, has_paper, has_product)
             rows.append(row)
 
-rows.sort(key=lambda x: -x["potential_score"])
+    # Flush after each school so a crash doesn't lose everything
+    rows.sort(key=lambda x: -x["research_score"])
+    write_csv(Path("results.csv"), rows)
+    write_csv(Path(f"runs/{TODAY}.csv"), rows)
+
+rows.sort(key=lambda x: -x["research_score"])
 
 # ── save run ──────────────────────────────────────────────────────────────────
 
@@ -320,7 +401,7 @@ print(f"Weekly Digest — {TODAY}")
 print(f"  New repos found:  {len(new_repos)}")
 print(f"  Repos gone hot:   {len(hot_repos)}  (star_delta >= 20)")
 
-print(f"\nTop 10 new repos by potential_score:")
+print(f"\nTop 10 new repos by research_score:")
 print(f"  {'Repo':<40} {'School':<22} {'Stars':<7} {'Score'}")
 print(f"  {'-'*80}")
 for r in sorted(new_repos, key=lambda x: -x["potential_score"])[:10]:
