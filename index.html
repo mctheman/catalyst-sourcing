@@ -463,6 +463,7 @@
       <input type="file" id="file-input" accept=".csv" style="display:none">
       <button class="btn" id="reload-btn" style="display:none">↺ Reload</button>
     </div>
+    <div id="auto-load-status" style="font-size:13px;color:var(--muted2);margin-top:10px;display:none"></div>
     <div id="error-msg"></div>
   </div>
 </div>
@@ -1157,6 +1158,48 @@ function showOrgErr(msg) {
 
 // Load saved settings on startup
 applySettings();
+
+// ── Auto-load most recent run from GitHub ─────────────────────────────────
+async function autoLoadLatest() {
+  const s = loadSettings();
+  if (!s.pat || !s.repo) return;
+
+  const statusEl = document.getElementById('auto-load-status');
+  statusEl.style.display = 'block';
+  statusEl.textContent = 'Loading latest run from GitHub…';
+
+  try {
+    const ghHeaders = {
+      'Authorization': `Bearer ${s.pat}`,
+      'Accept': 'application/vnd.github.v3+json',
+    };
+
+    // Fetch weekly_digest.csv via Contents API
+    const res = await fetch(
+      `https://api.github.com/repos/${s.repo}/contents/weekly_digest.csv`,
+      { headers: ghHeaders }
+    );
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      statusEl.textContent = `Could not auto-load: ${body.message || 'HTTP ' + res.status}`;
+      return;
+    }
+
+    const json = await res.json();
+    const csvText = atob(json.content.replace(/\n/g, ''));
+
+    state.rows = parseCSV(csvText);
+    state.page = 1;
+    onDataLoaded();
+    showError('');
+    statusEl.style.display = 'none';
+  } catch (err) {
+    statusEl.textContent = `Auto-load failed: ${err.message}`;
+  }
+}
+
+autoLoadLatest();
 </script>
 </body>
 </html>
