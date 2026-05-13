@@ -309,6 +309,44 @@
     color: var(--muted2);
   }
 
+  .score-info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--surface3);
+    color: var(--muted2);
+    font-size: 9px;
+    font-weight: 700;
+    cursor: default;
+    margin-left: 5px;
+    position: relative;
+    vertical-align: middle;
+  }
+  .score-info-icon .score-tooltip {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e1e2e;
+    border: 1px solid var(--border-bright);
+    border-radius: 8px;
+    padding: 10px 13px;
+    width: 240px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 400;
+    white-space: normal;
+    z-index: 100;
+    pointer-events: none;
+  }
+  .score-info-icon:hover .score-tooltip { display: block; }
+
   .repo-link {
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
@@ -809,17 +847,18 @@ function renderAll() {
 }
 
 // ── Table Builder ──────────────────────────────────────────────────────────
+const SCORE_ICON = `<span class="score-info-icon">i<span class="score-tooltip"><strong>Scoring (0–12)</strong><br>+3 has paper (arXiv/preprint)<br>+2 research org name signals<br>+2 product signals (pip, demo, docker)<br>+2 high star velocity (&gt;20/mo)<br>+2 high stars (&gt;100)<br>+1 each: forks, topics, .edu commits, research language<br>−3 homework/course/assignment keywords<br><br><span style="color:var(--score-high)">●</span> ≥7 high &nbsp; <span style="color:var(--score-mid)">●</span> 4–6 mid &nbsp; <span style="color:var(--score-low)">●</span> &lt;4 low</span></span>`;
+
 const COLS = [
-  { key: 'repo',               label: 'Repo',         sort: true  },
-  { key: 'school',             label: 'School',       sort: true  },
-  { key: 'stars',              label: 'Stars',        sort: true  },
-  { key: 'star_velocity',      label: 'Stars/Mo',     sort: true  },
-  { key: 'potential_score',    label: 'Score',        sort: true  },
-  { key: 'category',           label: 'Category',     sort: true  },
-  { key: 'has_product_signal', label: 'Product',      sort: false },
-  { key: 'has_paper',          label: 'Paper',        sort: false },
-  { key: 'arxiv_url',          label: 'ArXiv',        sort: false },
-  { key: 'last_updated',       label: 'Last Updated', sort: true  },
+  { key: 'repo',            label: 'Repo',                        sort: true  },
+  { key: 'description',     label: 'Description',                 sort: false },
+  { key: 'school',          label: 'School',                      sort: true  },
+  { key: 'stars',           label: 'Stars',                       sort: true  },
+  { key: 'star_velocity',   label: 'Stars/Mo',                    sort: true  },
+  { key: 'potential_score', label: 'Score',   labelHtml: `Score${SCORE_ICON}`, sort: true  },
+  { key: 'category',        label: 'Category',                    sort: true  },
+  { key: 'arxiv_url',       label: 'ArXiv',                       sort: false },
+  { key: 'last_updated',    label: 'Last Updated',                sort: true  },
 ];
 
 function scoreTier(s) {
@@ -834,12 +873,13 @@ function setTable(tableId, rows, sortable) {
   const body = tbl.querySelector('tbody');
 
   head.innerHTML = '<tr>' + COLS.map(c => {
-    if (!sortable || !c.sort) return `<th>${c.label}</th>`;
+    const display = c.labelHtml || c.label;
+    if (!sortable || !c.sort) return `<th>${display}</th>`;
     const active = state.sortCol === c.key ? ' sort-active' : '';
     const arrow  = state.sortCol === c.key
       ? `<span class="sort-arrow">${state.sortDir === 1 ? '▲' : '▼'}</span>`
       : `<span class="sort-arrow">▲</span>`;
-    return `<th class="sortable${active}" onclick="setSort('${c.key}')">${c.label}${arrow}</th>`;
+    return `<th class="sortable${active}" onclick="setSort('${c.key}')">${display}${arrow}</th>`;
   }).join('') + '</tr>';
 
   if (!rows.length) {
@@ -851,19 +891,16 @@ function setTable(tableId, rows, sortable) {
     const tier  = scoreTier(r.potential_score);
     const repo  = `<a href="${r.url||'#'}" target="_blank" class="repo-link">${r.org||''}/${r.repo||''}</a>`;
     const score = `<span class="score-badge score-${tier}">${r.potential_score}</span>`;
-    const prod  = r.has_product_signal === true ? '📦' : '';
-    const paper = r.has_paper === true ? '📄' : '';
     const arxiv = r.arxiv_url ? `<a href="${r.arxiv_url}" target="_blank" style="font-size:11px">📄 arXiv</a>` : '';
     const vel   = typeof r.star_velocity === 'number' ? r.star_velocity.toFixed(1) : r.star_velocity;
     return `<tr>
       <td>${repo}</td>
+      <td class="desc-cell">${r.description||''}</td>
       <td>${r.school||''}</td>
       <td>${(r.stars||0).toLocaleString()}</td>
       <td>${vel}</td>
       <td>${score}</td>
       <td>${r.category||''}</td>
-      <td style="text-align:center">${prod}</td>
-      <td style="text-align:center">${paper}</td>
       <td>${arxiv}</td>
       <td>${r.last_updated||''}</td>
     </tr>`;
