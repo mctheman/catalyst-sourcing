@@ -316,8 +316,10 @@
     border-radius: 50%;
     background: var(--surface3);
     color: var(--muted2);
-    font-size: 9px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 400;
+    font-style: italic;
+    font-family: Georgia, 'Times New Roman', serif;
     cursor: default;
     margin-left: 5px;
     position: relative;
@@ -848,7 +850,7 @@ function renderAll() {
 }
 
 // ── Table Builder ──────────────────────────────────────────────────────────
-const SCORE_ICON = `<span class="score-info-icon"><i>i</i><span class="score-tooltip"><strong>Scoring (0–12)</strong><br>+3 has paper (arXiv/preprint)<br>+2 research org name signals<br>+2 product signals (pip, demo, docker)<br>+2 high star velocity (&gt;20/mo)<br>+2 high stars (&gt;100)<br>+1 each: forks, topics, .edu commits, research language<br>−3 homework/course/assignment keywords<br><br><span style="color:var(--score-high)">●</span> ≥7 high &nbsp; <span style="color:var(--score-mid)">●</span> 4–6 mid &nbsp; <span style="color:var(--score-low)">●</span> &lt;4 low</span></span>`;
+const SCORE_ICON = `<span class="score-info-icon">i<span class="score-tooltip"><strong>Scoring (0–12)</strong><br>+3 has paper (arXiv/preprint)<br>+2 research org name signals<br>+2 product signals (pip, demo, docker)<br>+2 high star velocity (&gt;20/mo)<br>+2 high stars (&gt;100)<br>+1 each: forks, topics, .edu commits, research language<br>−3 homework/course/assignment keywords<br><br><span style="color:var(--score-high)">●</span> ≥7 high &nbsp; <span style="color:var(--score-mid)">●</span> 4–6 mid &nbsp; <span style="color:var(--score-low)">●</span> &lt;4 low</span></span>`;
 
 const COLS = [
   { key: 'repo',            label: 'Repo',                                     sort: true,  width: '13%' },
