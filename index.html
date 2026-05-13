@@ -586,6 +586,7 @@
             <button class="btn" id="prev-btn-top" onclick="pageTopDelta(-1)">← Prev</button>
             <span class="page-info" id="page-info-top"></span>
             <button class="btn" id="next-btn-top" onclick="pageTopDelta(1)">Next →</button>
+            <button class="btn" id="view-all-btn-top" onclick="toggleViewAllTop()">View All</button>
             <div class="page-jump">
               <span>Go to</span>
               <input type="number" id="page-jump-input-top" min="1" placeholder="…">
@@ -678,6 +679,7 @@ const state = {
   PAGE_SIZE_TOP: 10,
   viewAll: false,
   viewAllNew: false,
+  viewAllTop: false,
   searchText: '',
 };
 
@@ -951,13 +953,22 @@ function renderTopScorers() {
   const total = state.filteredTop.length;
   const pages = Math.max(1, Math.ceil(total / state.PAGE_SIZE_TOP));
   if (state.pageTop > pages) state.pageTop = pages;
-  const rows = state.filteredTop.slice((state.pageTop - 1) * state.PAGE_SIZE_TOP, state.pageTop * state.PAGE_SIZE_TOP);
+  const rows = state.viewAllTop
+    ? state.filteredTop
+    : state.filteredTop.slice((state.pageTop - 1) * state.PAGE_SIZE_TOP, state.pageTop * state.PAGE_SIZE_TOP);
   setTable('table-top', rows, false);
   document.getElementById('count-top').textContent = total.toLocaleString();
-  document.getElementById('page-info-top').textContent = `Page ${state.pageTop} of ${pages}`;
-  document.getElementById('prev-btn-top').disabled = state.pageTop <= 1;
-  document.getElementById('next-btn-top').disabled = state.pageTop >= pages;
+  document.getElementById('page-info-top').textContent = state.viewAllTop ? `All ${total.toLocaleString()} repos` : `Page ${state.pageTop} of ${pages}`;
+  document.getElementById('prev-btn-top').disabled = state.viewAllTop || state.pageTop <= 1;
+  document.getElementById('next-btn-top').disabled = state.viewAllTop || state.pageTop >= pages;
+  document.getElementById('view-all-btn-top').textContent = state.viewAllTop ? 'Paginate' : 'View All';
   document.getElementById('page-jump-input-top').max = pages;
+}
+
+function toggleViewAllTop() {
+  state.viewAllTop = !state.viewAllTop;
+  if (state.viewAllTop) state.pageTop = 1;
+  renderTopScorers();
 }
 
 function pageTopDelta(delta) {
