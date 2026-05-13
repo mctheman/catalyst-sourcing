@@ -310,20 +310,32 @@
 
   .score-info-icon {
     display: inline-flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 16px; height: 16px;
+    gap: 2px;
+    width: 15px; height: 15px;
     border-radius: 50%;
     background: var(--surface3);
-    color: var(--muted2);
-    font-size: 12px;
-    font-weight: 400;
-    font-style: italic;
     cursor: default;
     margin-left: 5px;
     position: relative;
     vertical-align: middle;
-    line-height: 1;
+    font-size: 0;
+  }
+  .score-info-icon::before {
+    content: '';
+    width: 2px; height: 2px;
+    border-radius: 50%;
+    background: var(--muted2);
+    flex-shrink: 0;
+  }
+  .score-info-icon::after {
+    content: '';
+    width: 2px; height: 5px;
+    border-radius: 1px;
+    background: var(--muted2);
+    flex-shrink: 0;
   }
   .score-info-icon .score-tooltip {
     display: none;
@@ -850,7 +862,7 @@ function renderAll() {
 }
 
 // ── Table Builder ──────────────────────────────────────────────────────────
-const SCORE_ICON = `<span class="score-info-icon">i<span class="score-tooltip"><strong>Scoring (0–12)</strong><br>+3 has paper (arXiv/preprint)<br>+2 research org name signals<br>+2 product signals (pip, demo, docker)<br>+2 high star velocity (&gt;20/mo)<br>+2 high stars (&gt;100)<br>+1 each: forks, topics, .edu commits, research language<br>−3 homework/course/assignment keywords<br><br><span style="color:var(--score-high)">●</span> ≥7 high &nbsp; <span style="color:var(--score-mid)">●</span> 4–6 mid &nbsp; <span style="color:var(--score-low)">●</span> &lt;4 low</span></span>`;
+const SCORE_ICON = `<span class="score-info-icon"><span class="score-tooltip"><strong>Scoring (0–12)</strong><br>+3 has paper (arXiv/preprint)<br>+2 research org name signals<br>+2 product signals (pip, demo, docker)<br>+2 high star velocity (&gt;20/mo)<br>+2 high stars (&gt;100)<br>+1 each: forks, topics, .edu commits, research language<br>−3 homework/course/assignment keywords<br><br><span style="color:var(--score-high)">●</span> ≥7 high &nbsp; <span style="color:var(--score-mid)">●</span> 4–6 mid &nbsp; <span style="color:var(--score-low)">●</span> &lt;4 low</span></span>`;
 
 const COLS = [
   { key: 'repo',            label: 'Repo',                                     sort: true,  width: '13%' },
