@@ -268,6 +268,7 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
+    table-layout: fixed;
   }
 
   thead th {
@@ -299,13 +300,11 @@
     padding: 10px 14px;
     vertical-align: middle;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   td.desc-cell {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 280px;
     color: var(--muted2);
   }
 
@@ -850,15 +849,15 @@ function renderAll() {
 const SCORE_ICON = `<span class="score-info-icon">i<span class="score-tooltip"><strong>Scoring (0–12)</strong><br>+3 has paper (arXiv/preprint)<br>+2 research org name signals<br>+2 product signals (pip, demo, docker)<br>+2 high star velocity (&gt;20/mo)<br>+2 high stars (&gt;100)<br>+1 each: forks, topics, .edu commits, research language<br>−3 homework/course/assignment keywords<br><br><span style="color:var(--score-high)">●</span> ≥7 high &nbsp; <span style="color:var(--score-mid)">●</span> 4–6 mid &nbsp; <span style="color:var(--score-low)">●</span> &lt;4 low</span></span>`;
 
 const COLS = [
-  { key: 'repo',            label: 'Repo',                        sort: true  },
-  { key: 'description',     label: 'Description',                 sort: false },
-  { key: 'school',          label: 'School',                      sort: true  },
-  { key: 'stars',           label: 'Stars',                       sort: true  },
-  { key: 'star_velocity',   label: 'Stars/Mo',                    sort: true  },
-  { key: 'potential_score', label: 'Score',   labelHtml: `Score${SCORE_ICON}`, sort: true  },
-  { key: 'category',        label: 'Category',                    sort: true  },
-  { key: 'arxiv_url',       label: 'ArXiv',                       sort: false },
-  { key: 'last_updated',    label: 'Last Updated',                sort: true  },
+  { key: 'repo',            label: 'Repo',                                     sort: true,  width: '13%' },
+  { key: 'description',     label: 'Description',                              sort: false, width: '27%' },
+  { key: 'school',          label: 'School',                                   sort: true,  width: '11%' },
+  { key: 'stars',           label: 'Stars',                                    sort: true,  width: '6%'  },
+  { key: 'star_velocity',   label: 'Stars/Mo',                                 sort: true,  width: '7%'  },
+  { key: 'potential_score', label: 'Score', labelHtml: `Score${SCORE_ICON}`,   sort: true,  width: '7%'  },
+  { key: 'category',        label: 'Category',                                 sort: true,  width: '12%' },
+  { key: 'arxiv_url',       label: 'ArXiv',                                    sort: false, width: '7%'  },
+  { key: 'last_updated',    label: 'Last Updated',                             sort: true,  width: '10%' },
 ];
 
 function scoreTier(s) {
@@ -874,12 +873,13 @@ function setTable(tableId, rows, sortable) {
 
   head.innerHTML = '<tr>' + COLS.map(c => {
     const display = c.labelHtml || c.label;
-    if (!sortable || !c.sort) return `<th>${display}</th>`;
+    const w = c.width ? ` style="width:${c.width}"` : '';
+    if (!sortable || !c.sort) return `<th${w}>${display}</th>`;
     const active = state.sortCol === c.key ? ' sort-active' : '';
     const arrow  = state.sortCol === c.key
       ? `<span class="sort-arrow">${state.sortDir === 1 ? '▲' : '▼'}</span>`
       : `<span class="sort-arrow">▲</span>`;
-    return `<th class="sortable${active}" onclick="setSort('${c.key}')">${display}${arrow}</th>`;
+    return `<th${w} class="sortable${active}" onclick="setSort('${c.key}')">${display}${arrow}</th>`;
   }).join('') + '</tr>';
 
   if (!rows.length) {
